@@ -1,11 +1,30 @@
 from django.urls import path
-
-from .views import MeView, AdminDashboardView
+from .views import (
+    MeView,
+    AdminDashboardView,
+    ManagerDashboardView,
+    EmployeeDashboardView,
+)
 
 urlpatterns = [
-    path("me/", MeView.as_view(), name="me"),
+
     path(
-    "api/admin/dashboard/",
-    AdminDashboardView.as_view(),
-)
+        "me/",
+        MeView.as_view(),
+    ),
+
+    path(
+        "admin/",
+        AdminDashboardView.as_view(),
+    ),
+
+    path(
+        "manager/",
+        ManagerDashboardView.as_view(),
+    ),
+
+    path(
+        "employee/",
+        EmployeeDashboardView.as_view(),
+    ),
 ]

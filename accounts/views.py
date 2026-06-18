@@ -1,9 +1,12 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .permissions import IsAdmin
 from .serializers import UserSerializer
-
+from .permissions import (
+    IsAdmin,
+    IsManager,
+    IsEmployee,
+)
 
 class MeView(APIView):
 
@@ -17,9 +20,15 @@ class MeView(APIView):
     
 class AdminDashboardView(APIView):
 
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [
+        IsAuthenticated,
+        IsAdmin,
+    ]
 
     def get(self, request):
+
         return Response(
-            {"message": "Welcome Admin"}
+            {
+                "message": "Welcome Admin"
+            }
         )
