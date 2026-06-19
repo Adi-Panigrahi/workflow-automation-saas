@@ -3,6 +3,7 @@ from django.db import models
 
 from core.models import Organization
 
+from departments.models import Department
 
 class User(AbstractUser):
 
@@ -26,6 +27,14 @@ class User(AbstractUser):
         related_name="users",
         null=True,
         blank=True,
+    )
+
+    department = models.ForeignKey(
+        "departments.Department",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
     )
 
     USERNAME_FIELD = "email"

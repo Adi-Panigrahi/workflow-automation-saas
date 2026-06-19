@@ -32,3 +32,33 @@ class AdminDashboardView(APIView):
                 "message": "Welcome Admin"
             }
         )
+
+class ManagerDashboardView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsManager,
+    ]
+
+    def get(self, request):
+
+        return Response(
+            {
+                "message": "Welcome Manager"
+            }
+        )
+        
+class EmployeeDashboardView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployee,
+    ]
+
+    def get(self, request):
+
+        return Response(
+            {
+                "message": "Welcome Employee"
+            }
+        )
