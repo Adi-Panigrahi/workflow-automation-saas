@@ -43,4 +43,8 @@ urlpatterns = [
     ),
 
     path("admin/", admin.site.urls),
+    path(
+    "api/",
+    include("workflow_instances.urls")
+),
 ]
