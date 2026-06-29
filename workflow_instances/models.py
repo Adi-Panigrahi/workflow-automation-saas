@@ -1,6 +1,6 @@
 from django.db import models
 from accounts.models import User
-from workflows.models import WorkflowTemplate
+from workflows.models import WorkflowStep, WorkflowTemplate
 
 
 class WorkflowInstance(models.Model):
@@ -29,8 +29,11 @@ class WorkflowInstance(models.Model):
         default="PENDING"
     )
 
-    current_step = models.IntegerField(default=1)
-
+    current_step = models.ForeignKey(
+        WorkflowStep,
+        null=True,
+        on_delete=models.SET_NULL
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

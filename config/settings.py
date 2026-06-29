@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'departments',
     'workflows',
     'workflow_instances',
+    "approvals",
+
 ]
 
 REST_FRAMEWORK = {
