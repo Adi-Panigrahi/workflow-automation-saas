@@ -7,7 +7,8 @@ class WorkflowInstance(models.Model):
 
     STATUS_CHOICES = (
         ("PENDING", "Pending"),
-        ("APPROVED", "Approved"),
+        ("IN_PROGRESS", "In Progress"),
+        ("COMPLETED", "Completed"),
         ("REJECTED", "Rejected"),
     )
 
