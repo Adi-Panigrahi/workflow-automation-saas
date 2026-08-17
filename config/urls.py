@@ -47,4 +47,9 @@ urlpatterns = [
         "api/",
         include("approvals.urls"),
     ),
+
+    path(
+        "api/",
+        include("audit_logs.urls"),
+    ),
 ]

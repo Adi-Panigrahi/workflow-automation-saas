@@ -3,6 +3,8 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
+from audit_logs.models import AuditLog
+from audit_logs.services import log_workflow_event
 from workflow_instances.models import WorkflowInstance
 from workflows.models import WorkflowStep
 
@@ -105,6 +107,16 @@ def start_workflow(instance: WorkflowInstance) -> Approval:
     locked_instance.status = "IN_PROGRESS"
     locked_instance.save(update_fields=["current_step", "status"])
 
+    log_workflow_event(
+        workflow_instance=locked_instance,
+        actor=locked_instance.submitted_by,
+        action=AuditLog.ACTION_WORKFLOW_STARTED,
+        previous_status="PENDING",
+        new_status="IN_PROGRESS",
+        approval=approval,
+        metadata={"step_id": first_step.id},
+    )
+
     return approval
 
 
@@ -133,6 +145,14 @@ def approve_approval(approval: Approval, actor, comments: str = "") -> Approval:
     if not next_step:
         instance.status = "COMPLETED"
         instance.save(update_fields=["status"])
+        log_workflow_event(
+            workflow_instance=instance,
+            actor=actor,
+            action=AuditLog.ACTION_APPROVAL_APPROVED,
+            previous_status="IN_PROGRESS",
+            new_status="COMPLETED",
+            approval=locked_approval,
+        )
         return locked_approval
 
     if not next_step.assigned_to_id:
@@ -152,6 +172,15 @@ def approve_approval(approval: Approval, actor, comments: str = "") -> Approval:
     )
     instance.current_step = next_step
     instance.save(update_fields=["current_step"])
+    log_workflow_event(
+        workflow_instance=instance,
+        actor=actor,
+        action=AuditLog.ACTION_APPROVAL_APPROVED,
+        previous_status="IN_PROGRESS",
+        new_status="IN_PROGRESS",
+        approval=locked_approval,
+        metadata={"next_step_id": next_step.id},
+    )
     return locked_approval
 
 
@@ -169,4 +198,12 @@ def reject_approval(approval: Approval, actor, comments: str = "") -> Approval:
     instance = locked_approval.workflow_instance
     instance.status = "REJECTED"
     instance.save(update_fields=["status"])
+    log_workflow_event(
+        workflow_instance=instance,
+        actor=actor,
+        action=AuditLog.ACTION_APPROVAL_REJECTED,
+        previous_status="IN_PROGRESS",
+        new_status="REJECTED",
+        approval=locked_approval,
+    )
     return locked_approval
