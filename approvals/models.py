@@ -1,6 +1,6 @@
+from django.conf import settings
 from django.db import models
 
-from accounts.models import User
 from workflow_instances.models import WorkflowInstance
 from workflows.models import WorkflowStep
 
@@ -26,7 +26,7 @@ class Approval(models.Model):
     )
 
     assigned_to = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="assigned_approvals"
     )

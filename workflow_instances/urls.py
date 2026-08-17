@@ -4,7 +4,8 @@ from .views import WorkflowInstanceViewSet
 router = DefaultRouter()
 router.register(
     "workflow-instances",
-    WorkflowInstanceViewSet
+    WorkflowInstanceViewSet,
+    basename="workflow-instance",
 )
 
 urlpatterns = router.urls
