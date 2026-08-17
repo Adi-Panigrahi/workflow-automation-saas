@@ -19,6 +19,7 @@ class WorkflowInstanceSerializer(serializers.ModelSerializer):
             "id",
             "workflow",
             "submitted_by",
+            "request_data",
             "status",
             "current_step",
             "created_at",

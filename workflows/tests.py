@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.urls import reverse
+from django.core.exceptions import ValidationError
 from rest_framework.test import APIClient
 
 from accounts.models import User
@@ -95,3 +96,30 @@ class WorkflowApiTests(TestCase):
         response = self.client.get(reverse("workflow-list"))
 
         self.assertEqual(response.status_code, 403)
+
+    def test_step_model_rejects_an_approver_from_another_organization(self):
+        other_organization = Organization.objects.create(
+            name="Microsoft",
+            slug="microsoft",
+        )
+        other_manager = User.objects.create_user(
+            email="manager@microsoft.com",
+            username="microsoft-manager",
+            password="test-password",
+            role="MANAGER",
+            organization=other_organization,
+        )
+        workflow = WorkflowTemplate.objects.create(
+            name="Leave Request",
+            organization=self.organization,
+        )
+        step = WorkflowStep(
+            workflow=workflow,
+            name="Manager Approval",
+            order=1,
+            role_required="MANAGER",
+            assigned_to=other_manager,
+        )
+
+        with self.assertRaises(ValidationError):
+            step.full_clean()

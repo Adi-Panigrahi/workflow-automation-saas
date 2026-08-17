@@ -78,7 +78,62 @@ Employee → Manager Approval → HR Approval → Completed
 ### Multi-Tenancy
 
 * Organization Model
-* Organization CRUD API
+* Authenticated, tenant-scoped organization access
+* Organization-level users, departments, workflow templates, instances, approvals, and audit logs
+
+### Identity and Authorization
+
+* Custom email-based user model
+* JWT login and token refresh
+* Admin, Manager, and Employee roles
+* Tenant-scoped user management for organization admins
+
+### Workflow Engine
+
+* Configurable workflow templates and ordered approval steps
+* Explicit step approvers validated against tenant and role
+* Structured request data stored with every workflow instance
+* Atomic workflow start, approval progression, rejection, and completion
+* Approval comments and approval history
+
+### Auditability
+
+* Append-only audit records for workflow starts, approvals, and rejections
+* Read-only audit-log API for organization admins
+
+## API Overview
+
+All protected endpoints require a JWT access token:
+
+```text
+Authorization: Bearer <access-token>
+```
+
+```text
+POST /api/auth/login/
+POST /api/auth/refresh/
+GET  /api/auth/me/
+
+GET/POST /api/auth/users/
+GET/POST /api/departments/
+GET/POST /api/workflows/
+GET/POST /api/workflow-steps/
+
+GET/POST /api/workflow-instances/
+GET      /api/approvals/
+POST     /api/approvals/{id}/approve/
+POST     /api/approvals/{id}/reject/
+GET      /api/audit-logs/
+```
+
+## Local Development
+
+```bash
+source venv/bin/activate
+python manage.py migrate
+python manage.py test
+python manage.py runserver
+```
 
 ---
 

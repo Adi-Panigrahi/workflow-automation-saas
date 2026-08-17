@@ -35,6 +35,12 @@ class WorkflowInstance(models.Model):
         null=True,
         on_delete=models.SET_NULL
     )
+
+    request_data = models.JSONField(
+        default=dict,
+        blank=True,
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -46,13 +46,21 @@ class WorkflowInstanceApiTests(TestCase):
 
         response = self.client.post(
             reverse("workflow-instance-list"),
-            {"workflow": self.workflow.id},
+            {
+                "workflow": self.workflow.id,
+                "request_data": {
+                    "start_date": "2026-08-20",
+                    "end_date": "2026-08-22",
+                    "reason": "Family event",
+                },
+            },
             format="json",
         )
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["submitted_by"], self.employee.id)
         self.assertEqual(response.data["status"], "IN_PROGRESS")
+        self.assertEqual(response.data["request_data"]["reason"], "Family event")
         self.assertEqual(Approval.objects.count(), 1)
         self.assertEqual(Approval.objects.get().assigned_to, self.manager)
 
