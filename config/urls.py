@@ -21,7 +21,7 @@ urlpatterns = [
         "api/auth/refresh/",
         TokenRefreshView.as_view(),
         name="token_refresh",
-    ),\
+    ),
 
     path(
         "api/auth/",
@@ -31,5 +31,20 @@ urlpatterns = [
     path(
         "api/",
         include("workflow_instances.urls"),
+    ),
+
+    path(
+        "api/",
+        include("workflows.urls"),
+    ),
+
+    path(
+        "api/",
+        include("departments.urls"),
+    ),
+
+    path(
+        "api/",
+        include("approvals.urls"),
     ),
 ]
