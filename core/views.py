@@ -1,7 +1,9 @@
-from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.permissions import IsAuthenticated
+
 from .models import Organization
 from .serializers import OrganizationSerializer
 
@@ -12,9 +14,36 @@ def health_check(request):
     })
 
 class OrganizationListCreateView(ListCreateAPIView):
-    queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
-    
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return Organization.objects.all()
+
+        if not self.request.user.organization_id:
+            return Organization.objects.none()
+
+        return Organization.objects.filter(pk=self.request.user.organization_id)
+
+    def perform_create(self, serializer):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied(
+                "Only platform administrators can create organizations."
+            )
+
+        serializer.save()
+
+
 class OrganizationDetailView(RetrieveUpdateDestroyAPIView):
-    queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return Organization.objects.all()
+
+        if not self.request.user.organization_id:
+            return Organization.objects.none()
+
+        return Organization.objects.filter(pk=self.request.user.organization_id)
