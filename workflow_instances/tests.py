@@ -8,6 +8,8 @@ from audit_logs.models import AuditLog
 from core.models import Organization
 from workflows.models import WorkflowStep, WorkflowTemplate
 
+from .models import WorkflowInstance
+
 
 class WorkflowInstanceApiTests(TestCase):
     def setUp(self):

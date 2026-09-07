@@ -207,3 +207,44 @@ def reject_approval(approval: Approval, actor, comments: str = "") -> Approval:
         approval=locked_approval,
     )
     return locked_approval
+
+
+@transaction.atomic
+def cancel_workflow(instance: WorkflowInstance, actor) -> WorkflowInstance:
+    """Cancel an in-progress workflow at the request of its submitter."""
+    locked_instance = (
+        WorkflowInstance.objects.select_for_update()
+        .select_related("workflow", "submitted_by")
+        .get(pk=instance.pk)
+    )
+
+    if locked_instance.submitted_by_id != actor.id:
+        raise PermissionDenied("Only the request submitter can cancel this workflow.")
+
+    if locked_instance.workflow.organization_id != actor.organization_id:
+        raise PermissionDenied("You cannot cancel another organization's workflow.")
+
+    if locked_instance.status != "IN_PROGRESS":
+        raise InvalidWorkflowStateError("Only in-progress workflows can be cancelled.")
+
+    pending_approval = (
+        Approval.objects.select_for_update()
+        .filter(workflow_instance=locked_instance, status="PENDING")
+        .first()
+    )
+    if pending_approval:
+        pending_approval.status = "CANCELLED"
+        pending_approval.save(update_fields=["status", "updated_at"])
+
+    locked_instance.status = "CANCELLED"
+    locked_instance.cancelled_at = timezone.now()
+    locked_instance.save(update_fields=["status", "cancelled_at"])
+    log_workflow_event(
+        workflow_instance=locked_instance,
+        actor=actor,
+        action=AuditLog.ACTION_WORKFLOW_CANCELLED,
+        previous_status="IN_PROGRESS",
+        new_status="CANCELLED",
+        approval=pending_approval,
+    )
+    return locked_instance

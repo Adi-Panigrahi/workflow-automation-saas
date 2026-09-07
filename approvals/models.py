@@ -11,6 +11,7 @@ class Approval(models.Model):
         ("PENDING", "Pending"),
         ("APPROVED", "Approved"),
         ("REJECTED", "Rejected"),
+        ("CANCELLED", "Cancelled"),
     )
 
     workflow_instance = models.ForeignKey(

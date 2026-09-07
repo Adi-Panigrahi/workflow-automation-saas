@@ -6,11 +6,13 @@ class AuditLog(models.Model):
     ACTION_WORKFLOW_STARTED = "WORKFLOW_STARTED"
     ACTION_APPROVAL_APPROVED = "APPROVAL_APPROVED"
     ACTION_APPROVAL_REJECTED = "APPROVAL_REJECTED"
+    ACTION_WORKFLOW_CANCELLED = "WORKFLOW_CANCELLED"
 
     ACTION_CHOICES = (
         (ACTION_WORKFLOW_STARTED, "Workflow Started"),
         (ACTION_APPROVAL_APPROVED, "Approval Approved"),
         (ACTION_APPROVAL_REJECTED, "Approval Rejected"),
+        (ACTION_WORKFLOW_CANCELLED, "Workflow Cancelled"),
     )
 
     organization = models.ForeignKey(
