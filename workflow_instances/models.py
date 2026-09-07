@@ -10,6 +10,7 @@ class WorkflowInstance(models.Model):
         ("IN_PROGRESS", "In Progress"),
         ("COMPLETED", "Completed"),
         ("REJECTED", "Rejected"),
+        ("CANCELLED", "Cancelled"),
     )
 
     workflow = models.ForeignKey(
@@ -42,6 +43,8 @@ class WorkflowInstance(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    cancelled_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.workflow.name} - {self.submitted_by.email}"

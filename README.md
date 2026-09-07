@@ -120,6 +120,7 @@ GET/POST /api/workflows/
 GET/POST /api/workflow-steps/
 
 GET/POST /api/workflow-instances/
+POST     /api/workflow-instances/{id}/cancel/
 GET      /api/approvals/
 POST     /api/approvals/{id}/approve/
 POST     /api/approvals/{id}/reject/

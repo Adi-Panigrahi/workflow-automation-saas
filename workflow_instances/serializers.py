@@ -12,6 +12,7 @@ class WorkflowInstanceSerializer(serializers.ModelSerializer):
     current_step = serializers.PrimaryKeyRelatedField(read_only=True)
     status = serializers.CharField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
+    cancelled_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = WorkflowInstance
@@ -23,6 +24,7 @@ class WorkflowInstanceSerializer(serializers.ModelSerializer):
             "status",
             "current_step",
             "created_at",
+            "cancelled_at",
         ]
 
     def validate_workflow(self, workflow):
