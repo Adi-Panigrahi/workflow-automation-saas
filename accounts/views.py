@@ -6,6 +6,7 @@ from approvals.models import Approval
 from departments.models import Department
 from workflow_instances.models import WorkflowInstance
 from workflows.models import WorkflowTemplate
+from notifications.models import Notification
 from .models import User
 from .serializers import UserManagementSerializer, UserSerializer
 from .permissions import (
@@ -50,6 +51,10 @@ class AdminDashboardView(APIView):
                     workflow_instance__workflow__organization=request.user.organization,
                     status="PENDING",
                 ).count(),
+                "unread_notifications": Notification.objects.filter(
+                    recipient=request.user,
+                    read_at__isnull=True,
+                ).count(),
             }
         )
 
@@ -76,6 +81,10 @@ class ManagerDashboardView(APIView):
                     assigned_to=request.user,
                     status="REJECTED",
                 ).count(),
+                "unread_notifications": Notification.objects.filter(
+                    recipient=request.user,
+                    read_at__isnull=True,
+                ).count(),
             }
         )
         
@@ -101,6 +110,10 @@ class EmployeeDashboardView(APIView):
                 "rejected_requests": WorkflowInstance.objects.filter(
                     submitted_by=request.user,
                     status="REJECTED",
+                ).count(),
+                "unread_notifications": Notification.objects.filter(
+                    recipient=request.user,
+                    read_at__isnull=True,
                 ).count(),
             }
         )

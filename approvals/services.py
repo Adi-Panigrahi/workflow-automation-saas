@@ -5,6 +5,8 @@ from rest_framework.exceptions import PermissionDenied
 
 from audit_logs.models import AuditLog
 from audit_logs.services import log_workflow_event
+from notifications.models import Notification
+from notifications.services import create_notification
 from workflow_instances.models import WorkflowInstance
 from workflows.models import WorkflowStep
 
@@ -116,6 +118,15 @@ def start_workflow(instance: WorkflowInstance) -> Approval:
         approval=approval,
         metadata={"step_id": first_step.id},
     )
+    create_notification(
+        recipient=first_step.assigned_to,
+        workflow_instance=locked_instance,
+        approval=approval,
+        notification_type=Notification.TYPE_APPROVAL_REQUESTED,
+        title="Approval requested",
+        message=f"{locked_instance.workflow.name} requires your approval.",
+        metadata={"step_id": first_step.id},
+    )
 
     return approval
 
@@ -153,6 +164,14 @@ def approve_approval(approval: Approval, actor, comments: str = "") -> Approval:
             new_status="COMPLETED",
             approval=locked_approval,
         )
+        create_notification(
+            recipient=instance.submitted_by,
+            workflow_instance=instance,
+            approval=locked_approval,
+            notification_type=Notification.TYPE_WORKFLOW_COMPLETED,
+            title="Workflow completed",
+            message=f"Your {instance.workflow.name} request was fully approved.",
+        )
         return locked_approval
 
     if not next_step.assigned_to_id:
@@ -165,7 +184,7 @@ def approve_approval(approval: Approval, actor, comments: str = "") -> Approval:
     except ValidationError as error:
         raise WorkflowConfigurationError(error.message_dict) from error
 
-    Approval.objects.create(
+    next_approval = Approval.objects.create(
         workflow_instance=instance,
         workflow_step=next_step,
         assigned_to=next_step.assigned_to,
@@ -180,6 +199,15 @@ def approve_approval(approval: Approval, actor, comments: str = "") -> Approval:
         new_status="IN_PROGRESS",
         approval=locked_approval,
         metadata={"next_step_id": next_step.id},
+    )
+    create_notification(
+        recipient=next_step.assigned_to,
+        workflow_instance=instance,
+        approval=next_approval,
+        notification_type=Notification.TYPE_APPROVAL_REQUESTED,
+        title="Approval requested",
+        message=f"{instance.workflow.name} requires your approval.",
+        metadata={"step_id": next_step.id},
     )
     return locked_approval
 
@@ -205,6 +233,64 @@ def reject_approval(approval: Approval, actor, comments: str = "") -> Approval:
         previous_status="IN_PROGRESS",
         new_status="REJECTED",
         approval=locked_approval,
+    )
+    create_notification(
+        recipient=instance.submitted_by,
+        workflow_instance=instance,
+        approval=locked_approval,
+        notification_type=Notification.TYPE_WORKFLOW_REJECTED,
+        title="Workflow rejected",
+        message=f"Your {instance.workflow.name} request was rejected.",
+    )
+    return locked_approval
+
+
+@transaction.atomic
+def reassign_approval(approval: Approval, actor, assigned_to, comments: str = "") -> Approval:
+    """Move a pending approval to an eligible approver and record the change."""
+    locked_approval = _get_locked_approval(approval.pk)
+    _validate_approval_action(locked_approval, actor)
+
+    if assigned_to.id == locked_approval.assigned_to_id:
+        raise InvalidWorkflowStateError(
+            "The approval is already assigned to this user."
+        )
+
+    workflow = locked_approval.workflow_instance.workflow
+    if assigned_to.organization_id != workflow.organization_id:
+        raise PermissionDenied("The new approver must belong to this organization.")
+
+    if assigned_to.role != locked_approval.workflow_step.role_required:
+        raise PermissionDenied("The new approver does not have the required role.")
+
+    if not assigned_to.is_active:
+        raise InvalidWorkflowStateError("The new approver must be active.")
+
+    previous_assignee_id = locked_approval.assigned_to_id
+    locked_approval.assigned_to = assigned_to
+    locked_approval.save(update_fields=["assigned_to", "updated_at"])
+
+    log_workflow_event(
+        workflow_instance=locked_approval.workflow_instance,
+        actor=actor,
+        action=AuditLog.ACTION_APPROVAL_REASSIGNED,
+        previous_status="IN_PROGRESS",
+        new_status="IN_PROGRESS",
+        approval=locked_approval,
+        metadata={
+            "previous_assignee_id": previous_assignee_id,
+            "new_assignee_id": assigned_to.id,
+            "comments": comments,
+        },
+    )
+    create_notification(
+        recipient=assigned_to,
+        workflow_instance=locked_approval.workflow_instance,
+        approval=locked_approval,
+        notification_type=Notification.TYPE_APPROVAL_REASSIGNED,
+        title="Approval reassigned to you",
+        message=f"{workflow.name} now requires your approval.",
+        metadata={"previous_assignee_id": previous_assignee_id},
     )
     return locked_approval
 

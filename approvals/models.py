@@ -55,6 +55,14 @@ class Approval(models.Model):
         auto_now=True
     )
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["workflow_instance", "workflow_step"],
+                name="unique_instance_step_approval",
+            ),
+        ]
+
     def __str__(self):
         return (
             f"{self.workflow_instance} - "

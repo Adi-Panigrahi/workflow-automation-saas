@@ -52,4 +52,9 @@ urlpatterns = [
         "api/",
         include("audit_logs.urls"),
     ),
+
+    path(
+        "api/",
+        include("notifications.urls"),
+    ),
 ]

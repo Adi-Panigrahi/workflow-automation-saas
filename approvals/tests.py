@@ -1,9 +1,11 @@
 from django.test import TestCase
 from django.urls import reverse
+from django.db import IntegrityError, transaction
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APIClient
 
 from accounts.models import User
+from audit_logs.models import AuditLog
 from core.models import Organization
 from workflow_instances.models import WorkflowInstance
 from workflows.models import WorkflowStep, WorkflowTemplate
@@ -12,6 +14,7 @@ from .models import Approval
 from .services import (
     WorkflowConfigurationError,
     approve_approval,
+    reassign_approval,
     reject_approval,
     start_workflow,
 )
@@ -238,3 +241,104 @@ class StartWorkflowTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    def test_database_rejects_duplicate_approval_for_a_step(self):
+        step = WorkflowStep.objects.create(
+            workflow=self.workflow,
+            name="Manager Approval",
+            order=1,
+            role_required="MANAGER",
+            assigned_to=self.manager,
+        )
+        instance = self.create_instance()
+        start_workflow(instance)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Approval.objects.create(
+                workflow_instance=instance,
+                workflow_step=step,
+                assigned_to=self.manager,
+            )
+
+    def test_assigned_approver_can_reassign_to_another_eligible_user(self):
+        another_manager = User.objects.create_user(
+            email="other-manager@google.com",
+            username="other-manager",
+            password="test-password",
+            role="MANAGER",
+            organization=self.organization,
+        )
+        WorkflowStep.objects.create(
+            workflow=self.workflow,
+            name="Manager Approval",
+            order=1,
+            role_required="MANAGER",
+            assigned_to=self.manager,
+        )
+        approval = start_workflow(self.create_instance())
+
+        reassign_approval(
+            approval,
+            self.manager,
+            another_manager,
+            "Out of office.",
+        )
+
+        approval.refresh_from_db()
+        audit_log = AuditLog.objects.latest("created_at")
+        self.assertEqual(approval.assigned_to, another_manager)
+        self.assertEqual(approval.status, "PENDING")
+        self.assertEqual(audit_log.action, AuditLog.ACTION_APPROVAL_REASSIGNED)
+        self.assertEqual(audit_log.metadata["previous_assignee_id"], self.manager.id)
+        self.assertEqual(audit_log.metadata["new_assignee_id"], another_manager.id)
+
+    def test_assigned_approver_can_reassign_through_api(self):
+        another_manager = User.objects.create_user(
+            email="other-manager@google.com",
+            username="other-manager",
+            password="test-password",
+            role="MANAGER",
+            organization=self.organization,
+        )
+        WorkflowStep.objects.create(
+            workflow=self.workflow,
+            name="Manager Approval",
+            order=1,
+            role_required="MANAGER",
+            assigned_to=self.manager,
+        )
+        approval = start_workflow(self.create_instance())
+        self.client.force_authenticate(self.manager)
+
+        response = self.client.post(
+            reverse("approval-reassign", kwargs={"pk": approval.pk}),
+            {
+                "assigned_to": another_manager.id,
+                "comments": "Out of office.",
+            },
+            format="json",
+        )
+
+        approval.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(approval.assigned_to, another_manager)
+
+    def test_assigned_approver_can_filter_pending_approvals(self):
+        WorkflowStep.objects.create(
+            workflow=self.workflow,
+            name="Manager Approval",
+            order=1,
+            role_required="MANAGER",
+            assigned_to=self.manager,
+        )
+        approval = start_workflow(self.create_instance())
+        self.client.force_authenticate(self.manager)
+
+        response = self.client.get(
+            reverse("approval-list"),
+            {"status": "PENDING"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], approval.id)

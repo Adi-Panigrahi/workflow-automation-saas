@@ -40,6 +40,28 @@ class WorkflowInstanceSerializer(serializers.ModelSerializer):
 
         return workflow
 
+    def validate(self, attrs):
+        workflow = attrs.get("workflow")
+        request_data = attrs.get("request_data", {})
+        required_fields = workflow.request_schema.get("required", [])
+        missing_fields = [
+            field
+            for field in required_fields
+            if request_data.get(field) in (None, "")
+        ]
+
+        if missing_fields:
+            raise serializers.ValidationError(
+                {
+                    "request_data": (
+                        "Missing required request-data fields: "
+                        + ", ".join(missing_fields)
+                    )
+                }
+            )
+
+        return attrs
+
     @transaction.atomic
     def create(self, validated_data):
         instance = WorkflowInstance.objects.create(

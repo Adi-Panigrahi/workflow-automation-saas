@@ -25,6 +25,11 @@ class WorkflowTemplate(models.Model):
         default=True
     )
 
+    request_schema = models.JSONField(
+        default=dict,
+        blank=True,
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True
     )
@@ -65,6 +70,14 @@ class WorkflowStep(models.Model):
     created_at = models.DateTimeField(
         auto_now_add=True
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["workflow", "order"],
+                name="unique_workflow_step_order",
+            ),
+        ]
 
     def clean(self):
         super().clean()

@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'workflow_instances',
     "approvals",
     "audit_logs",
+    "notifications",
 
 ]
 

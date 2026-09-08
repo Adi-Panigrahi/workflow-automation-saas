@@ -22,5 +22,13 @@ class Department(models.Model):
         auto_now=True
     )
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "name"],
+                name="unique_organization_department_name",
+            ),
+        ]
+
     def __str__(self):
         return self.name

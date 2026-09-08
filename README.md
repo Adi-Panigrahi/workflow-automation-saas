@@ -91,14 +91,22 @@ Employee → Manager Approval → HR Approval → Completed
 ### Workflow Engine
 
 * Configurable workflow templates and ordered approval steps
+* Per-template required request-data schema
 * Explicit step approvers validated against tenant and role
 * Structured request data stored with every workflow instance
-* Atomic workflow start, approval progression, rejection, and completion
-* Approval comments and approval history
+* Atomic workflow start, progression, reassignment, rejection, cancellation, and completion
+* Immutable submitted requests with tenant-scoped visibility
+* Database constraints preventing duplicate step orders and approval transitions
+* Locked workflow templates after first use, with safe cloning for future revisions
+
+### Notifications
+
+* In-app notifications for approval assignments, reassignments, approvals, and rejections
+* Recipient-only notification inbox with read/unread tracking
 
 ### Auditability
 
-* Append-only audit records for workflow starts, approvals, and rejections
+* Append-only audit records for workflow starts, approvals, reassignments, rejections, and cancellations
 * Read-only audit-log API for organization admins
 
 ## API Overview
@@ -117,13 +125,20 @@ GET  /api/auth/me/
 GET/POST /api/auth/users/
 GET/POST /api/departments/
 GET/POST /api/workflows/
+POST     /api/workflows/{id}/clone/
 GET/POST /api/workflow-steps/
 
 GET/POST /api/workflow-instances/
 POST     /api/workflow-instances/{id}/cancel/
+GET      /api/workflow-instances/{id}/timeline/
+GET      /api/workflow-instances/analytics/   # organization admins
 GET      /api/approvals/
 POST     /api/approvals/{id}/approve/
 POST     /api/approvals/{id}/reject/
+POST     /api/approvals/{id}/reassign/
+GET      /api/notifications/?unread=true
+POST     /api/notifications/{id}/mark_read/
+POST     /api/notifications/mark_all_read/
 GET      /api/audit-logs/
 ```
 

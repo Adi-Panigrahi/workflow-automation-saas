@@ -18,10 +18,35 @@ class WorkflowTemplateSerializer(serializers.ModelSerializer):
             "description",
             "organization",
             "is_active",
+            "request_schema",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["id", "organization", "created_at", "updated_at"]
+
+    def validate_request_schema(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("The request schema must be an object.")
+
+        required_fields = value.get("required", [])
+        if not isinstance(required_fields, list) or not all(
+            isinstance(field, str) and field.strip() for field in required_fields
+        ):
+            raise serializers.ValidationError(
+                "The 'required' value must be a list of non-empty field names."
+            )
+
+        if len(required_fields) != len(set(required_fields)):
+            raise serializers.ValidationError(
+                "The 'required' field names must not contain duplicates."
+            )
+
+        return value
+
+
+class WorkflowCloneSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=255)
+    is_active = serializers.BooleanField(required=False, default=True)
 
 
 class WorkflowStepSerializer(serializers.ModelSerializer):

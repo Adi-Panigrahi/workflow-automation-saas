@@ -1,14 +1,20 @@
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Approval
-from .serializers import ApprovalActionSerializer, ApprovalSerializer
+from .serializers import (
+    ApprovalActionSerializer,
+    ApprovalReassignSerializer,
+    ApprovalSerializer,
+)
 from .services import (
     InvalidWorkflowStateError,
     WorkflowConfigurationError,
     approve_approval,
+    reassign_approval,
     reject_approval,
 )
 
@@ -18,7 +24,7 @@ class ApprovalViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return (
+        queryset = (
             Approval.objects.select_related(
                 "workflow_instance__workflow",
                 "workflow_step",
@@ -27,6 +33,19 @@ class ApprovalViewSet(viewsets.ReadOnlyModelViewSet):
             .filter(assigned_to=self.request.user)
             .order_by("-created_at")
         )
+
+        workflow_instance_id = self.request.query_params.get("workflow_instance")
+        if workflow_instance_id:
+            queryset = queryset.filter(workflow_instance_id=workflow_instance_id)
+
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            valid_statuses = {value for value, _ in Approval.STATUS_CHOICES}
+            if status_filter not in valid_statuses:
+                raise ValidationError({"status": "Use a valid approval status."})
+            queryset = queryset.filter(status=status_filter)
+
+        return queryset
 
     def _resolve(self, request, operation):
         approval = self.get_object()
@@ -65,5 +84,26 @@ class ApprovalViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
         return self._resolve(request, reject_approval)
+
+    @action(detail=True, methods=["post"])
+    def reassign(self, request, pk=None):
+        approval = self.get_object()
+        serializer = ApprovalReassignSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            reassigned_approval = reassign_approval(
+                approval=approval,
+                actor=request.user,
+                assigned_to=serializer.validated_data["assigned_to"],
+                comments=serializer.validated_data.get("comments", ""),
+            )
+        except (InvalidWorkflowStateError, WorkflowConfigurationError) as error:
+            return Response(
+                {"detail": str(error)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(ApprovalSerializer(reassigned_approval).data)
 
 # Create your views here.

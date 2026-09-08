@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.urls import reverse
+from django.db import IntegrityError, transaction
 from rest_framework.test import APIClient
 
 from accounts.models import User
@@ -52,3 +53,9 @@ class DepartmentApiTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    def test_database_rejects_duplicate_department_names(self):
+        Department.objects.create(name="Engineering", organization=self.organization)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Department.objects.create(name="Engineering", organization=self.organization)
