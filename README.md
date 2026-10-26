@@ -1,4 +1,4 @@
-nmd # Workflow Automation SaaS
+# Workflow Automation SaaS
 
 A production-style multi-tenant Workflow Automation Platform built with Django and Django REST Framework.
 
@@ -42,23 +42,23 @@ Employee → Manager Approval → HR Approval → Completed
 
 ### Caching
 
-* Redis
+* Redis — planned
 
 ### Async Processing
 
-* Celery
-* Celery Beat
+* Celery — planned
+* Celery Beat — planned
 
 ### Deployment
 
-* Docker
-* Nginx
-* Gunicorn
-* AWS EC2
+* Docker and Docker Compose — development environment implemented
+* Nginx — planned
+* Gunicorn — planned
+* AWS EC2 — planned
 
 ### Documentation
 
-* Swagger / OpenAPI
+* Swagger / OpenAPI — planned
 
 ### Version Control
 
@@ -74,6 +74,8 @@ Employee → Manager Approval → HR Approval → Completed
 * Environment Variables
 * PostgreSQL Integration
 * Health Check API
+* Dockerized Django and PostgreSQL development environment
+* Persistent PostgreSQL Docker volume and health-checked service startup
 
 ### Multi-Tenancy
 
@@ -142,7 +144,56 @@ POST     /api/notifications/mark_all_read/
 GET      /api/audit-logs/
 ```
 
-## Local Development
+## Run Locally with Docker
+
+### Prerequisites
+
+* Docker Desktop
+* A `.env` file containing `SECRET_KEY`, `DEBUG`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD`
+
+### Start the application
+
+```bash
+docker compose up --build -d
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py check
+docker compose exec web python manage.py test
+```
+
+The API is available at:
+
+```text
+http://localhost:8000/api/health/
+```
+
+The Django admin is available at:
+
+```text
+http://localhost:8000/admin/
+```
+
+### Useful Docker commands
+
+```bash
+# Show service status
+docker compose ps
+
+# Follow Django logs
+docker compose logs -f web
+
+# Open a Django shell inside the container
+docker compose exec web sh
+
+# Create an admin user
+docker compose exec web python manage.py createsuperuser
+
+# Stop services while preserving PostgreSQL data
+docker compose down
+```
+
+> Do not run `docker compose down -v` unless you intentionally want to delete the Docker PostgreSQL database volume.
+
+## Local Development Without Docker
 
 ```bash
 source venv/bin/activate
@@ -157,14 +208,11 @@ python manage.py runserver
 
 ### User Management
 
-* Custom User Model
-* Organization-based Users
-* User Profiles
+* User profiles
 
 ### Authentication & Authorization
 
-* JWT Authentication
-* Role-Based Access Control (RBAC)
+* Advanced RBAC policies
 
 Roles:
 
@@ -174,20 +222,16 @@ Roles:
 
 ### Departments
 
-* Department CRUD
-* User Assignment
+* Department-level reporting hierarchy
 
 ### Workflow Management
 
-* Workflow Templates
-* Dynamic Approval Chains
-* Workflow Execution Engine
+* Advanced conditional workflow routing
 
 ### Approval System
 
-* Approve Requests
-* Reject Requests
-* Reassign Requests
+* Escalation policies
+* Delegation rules
 
 ### Notifications
 
@@ -198,17 +242,11 @@ Roles:
 
 Track:
 
-* Who performed an action
-* Previous value
-* New value
-* Timestamp
+* Retention and archival policy
 
 ### Dashboard APIs
 
-* Pending Approvals
-* Completed Approvals
-* User Metrics
-* Department Metrics
+* Advanced team and department analytics
 
 ### Performance Optimization
 
@@ -218,7 +256,6 @@ Track:
 
 ### Deployment
 
-* Docker
 * AWS EC2
 * Nginx
 * Gunicorn
